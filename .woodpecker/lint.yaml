@@ -1,0 +1,30 @@
+# Lint — JSON, Markdown, PowerShell, and shebang validation
+when:
+  - event: manual
+  - event: pull_request
+  - event: push
+    branch: master
+    path:
+      - "**.json"
+      - "**.md"
+      - "**.sh"
+      - ".woodpecker/lint.yaml"
+
+steps:
+  - name: super-linter
+    image: ghcr.io/super-linter/super-linter:slim-v7
+    environment:
+      VALIDATE_ALL_CODEBASE: "false"
+      VALIDATE_JSON: "true"
+      VALIDATE_MARKDOWN: "true"
+      VALIDATE_POWERSHELL: "true"
+      DEFAULT_BRANCH: master
+      FILTER_REGEX_EXCLUDE: ".*images/*/.*-Readme.md"
+      # super-linter needs the full repo for diff-based linting
+      RUN_LOCAL: "true"
+      DEFAULT_WORKSPACE: /woodpecker/src
+
+  - name: shebang-check
+    image: mcr.microsoft.com/powershell:lts-debian-12
+    commands:
+      - pwsh -File ./images.CI/shebang-linter.ps1

@@ -1,0 +1,65 @@
+# Build Ubuntu Packer images — Docker builder
+#
+# Requires DinD (Docker-in-Docker) which needs privileged mode enabled
+# in Woodpecker admin settings for this repo.
+#
+# Weekly schedule: configure via Woodpecker UI cron "weekly-build"
+when:
+  - event: manual
+  - event: cron
+    cron: weekly-build
+  - event: push
+    branch: master
+    path:
+      - "images/linux/**"
+      - ".woodpecker/build.yaml"
+  - event: pull_request
+    path:
+      - "images/linux/**"
+
+services:
+  - name: docker
+    image: docker:dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+
+matrix:
+  VERSION:
+    - 2004
+    - 1804
+
+steps:
+  - name: install-packer
+    image: dhi.io/alpine-base:3.23-dev@sha256:fb5ea621f50f24533355a8c58ca68aa9b5b5cd0af080feeb7f66ba1611069212
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+    commands:
+      - apk add --no-cache curl jq unzip docker-cli
+      - PACKER_VERSION=$(curl -s https://checkpoint-api.hashicorp.com/v1/check/packer | jq -r .current_version)
+      - curl -sLo /tmp/packer.zip "https://releases.hashicorp.com/packer/$${PACKER_VERSION}/packer_$${PACKER_VERSION}_linux_amd64.zip"
+      - unzip -qq /tmp/packer.zip -d /usr/local/bin
+      - rm /tmp/packer.zip
+      - packer version
+      # Wait for DinD to be ready
+      - until docker info >/dev/null 2>&1; do sleep 1; done
+      - cd images/linux
+      - packer build
+          -var "image_version=$(date +%Y%m%d)"
+          -var "ver=-dev"
+          -var "rev=${CI_COMMIT_SHA}"
+          ubuntu${VERSION}.json
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+      GHCR_USERNAME:
+        from_secret: ghcr_username
+      GHCR_PASSWORD:
+        from_secret: github_token
+      QUAY_USERNAME:
+        from_secret: quay_user
+      QUAY_PASSWORD:
+        from_secret: quay_pass
+      DCKR_USERNAME:
+        from_secret: docker_user
+      DCKR_PASSWORD:
+        from_secret: docker_pass
