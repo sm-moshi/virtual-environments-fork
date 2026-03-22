@@ -4,26 +4,15 @@
     "config:best-practices",
     ":preserveSemverRanges"
   ],
-  "platformAutomerge": false,
-  "dependencyDashboard": true,
-  "dependencyDashboardApproval": true,
-  "dependencyDashboardAutoclose": true,
-  "timezone": "Europe/Berlin",
   "schedule": [
     "before 9am on Monday"
   ],
-  "prHourlyLimit": 5,
-  "prConcurrentLimit": 3,
   "enabledManagers": [
     "github-actions"
-  ],
-  "labels": [
-    "dependencies"
   ],
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
-      "pinDigests": false,
       "groupName": "github-actions",
       "addLabels": ["ci"]
     }
